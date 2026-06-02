@@ -1,0 +1,44 @@
+{
+  "stores": [
+    {
+      "store_id": "STORE_BLR_002",
+      "store_name": "Brigade_Bangalore",
+      "city": "Bangalore",
+      "open_hours": {"open": "10:00", "close": "22:00"},
+      "cameras": [
+        {"camera_id": "CAM_ENTRY_01", "type": "entry_exit", "zone_coverage": ["ENTRY", "EXIT"]},
+        {"camera_id": "CAM_FLOOR_01", "type": "main_floor", "zone_coverage": ["SKINCARE", "MAKEUP", "HAIRCARE", "FRAGRANCE", "PERSONAL_CARE"]},
+        {"camera_id": "CAM_BILLING_01", "type": "billing", "zone_coverage": ["BILLING", "BILLING_QUEUE"]}
+      ],
+      "zones": [
+        {"zone_id": "ENTRY", "zone_name": "Entry/Exit Threshold", "type": "threshold"},
+        {"zone_id": "SKINCARE", "zone_name": "Skincare", "type": "product", "sku_zone": "MOISTURISER"},
+        {"zone_id": "MAKEUP", "zone_name": "Makeup & Cosmetics", "type": "product", "sku_zone": "COSMETICS"},
+        {"zone_id": "HAIRCARE", "zone_name": "Hair Care", "type": "product", "sku_zone": "HAIR"},
+        {"zone_id": "FRAGRANCE", "zone_name": "Fragrance & Deo", "type": "product", "sku_zone": "FRAGRANCE"},
+        {"zone_id": "PERSONAL_CARE", "zone_name": "Personal Care", "type": "product", "sku_zone": "PERSONAL_CARE"},
+        {"zone_id": "BILLING", "zone_name": "Billing Counter", "type": "billing"},
+        {"zone_id": "BILLING_QUEUE", "zone_name": "Billing Queue Area", "type": "queue"}
+      ]
+    },
+    {
+      "store_id": "STORE_BLR_003",
+      "store_name": "Store_Bangalore_2",
+      "city": "Bangalore",
+      "open_hours": {"open": "10:00", "close": "22:00"},
+      "cameras": [
+        {"camera_id": "CAM_ENTRY_01", "type": "entry_exit", "zone_coverage": ["ENTRY", "EXIT"]},
+        {"camera_id": "CAM_FLOOR_01", "type": "main_floor", "zone_coverage": ["SKINCARE", "MAKEUP", "HAIRCARE"]},
+        {"camera_id": "CAM_BILLING_01", "type": "billing", "zone_coverage": ["BILLING", "BILLING_QUEUE"]}
+      ],
+      "zones": [
+        {"zone_id": "ENTRY", "zone_name": "Entry/Exit Threshold", "type": "threshold"},
+        {"zone_id": "SKINCARE", "zone_name": "Skincare", "type": "product", "sku_zone": "MOISTURISER"},
+        {"zone_id": "MAKEUP", "zone_name": "Makeup & Cosmetics", "type": "product", "sku_zone": "COSMETICS"},
+        {"zone_id": "HAIRCARE", "zone_name": "Hair Care", "type": "product", "sku_zone": "HAIR"},
+        {"zone_id": "BILLING", "zone_name": "Billing Counter", "type": "billing"},
+        {"zone_id": "BILLING_QUEUE", "zone_name": "Billing Queue Area", "type": "queue"}
+      ]
+    }
+  ]
+}

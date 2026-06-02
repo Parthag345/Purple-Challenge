@@ -1,0 +1,60 @@
+version: "3.9"
+
+services:
+  # ─── Intelligence API ──────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: store_intelligence_api
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_PATH=/data/store_intelligence.db
+      - ENV=production
+      - PORT=8000
+    volumes:
+      - ./data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
+  # ─── Detection Pipeline (runs once, feeds events to API) ──────────────────
+  pipeline:
+    build:
+      context: .
+      dockerfile: Dockerfile.pipeline
+    container_name: store_intelligence_pipeline
+    environment:
+      - API_URL=http://api:8000
+      - VIDEO_DIR=/data/clips
+    volumes:
+      - ./data:/data
+    depends_on:
+      api:
+        condition: service_healthy
+    command: bash /app/pipeline/run.sh --simulate --api-url http://api:8000
+
+  # ─── Live Dashboard (optional, terminal UI) ────────────────────────────────
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: store_intelligence_dashboard
+    command: python3 /app/dashboard/live_dashboard.py --api http://api:8000 --store STORE_BLR_002 --simple
+    environment:
+      - API_URL=http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    stdin_open: true
+    tty: true
+    profiles:
+      - dashboard
+
+volumes:
+  data:

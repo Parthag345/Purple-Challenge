@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Store Intelligence — Live Dashboard</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --border: #30363d;
+      --accent: #6e40c9;
+      --accent2: #00bfa5;
+      --warn: #f9a825;
+      --danger: #ef5350;
+      --ok: #4caf50;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --font: 'Segoe UI', system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+
+    header {
+      background: linear-gradient(135deg, #1a0533 0%, #0d1117 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    header h1 { font-size: 1.4rem; background: linear-gradient(90deg, #a78bfa, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
+    .status-healthy { background: #0d4a1f; color: #4caf50; border: 1px solid #4caf50; }
+    .status-degraded { background: #4a3200; color: #f9a825; border: 1px solid #f9a825; }
+    .status-unhealthy { background: #4a0d0d; color: #ef5350; border: 1px solid #ef5350; }
+
+    .last-update { color: var(--muted); font-size: 0.8rem; }
+
+    .grid { display: grid; gap: 16px; padding: 20px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      transition: border-color 0.3s;
+    }
+    .card:hover { border-color: var(--accent); }
+    .card-title {
+      font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--muted); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+    }
+    .card-title span { font-size: 1rem; }
+
+    /* KPI cards */
+    .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .kpi { background: #0d1117; border-radius: 8px; padding: 14px; text-align: center; }
+    .kpi-value { font-size: 2rem; font-weight: 700; line-height: 1; }
+    .kpi-label { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+    .kpi-visitors .kpi-value { color: #38bdf8; }
+    .kpi-conversion .kpi-value { color: #4caf50; }
+    .kpi-dwell .kpi-value { color: #a78bfa; }
+    .kpi-queue .kpi-value { color: #f9a825; }
+    .kpi-revenue .kpi-value { color: #34d399; }
+    .kpi-abandon .kpi-value { color: #ef5350; }
+
+    /* Funnel */
+    .funnel-stage { margin-bottom: 12px; }
+    .funnel-header { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px; }
+    .funnel-bar-bg { background: #0d1117; border-radius: 4px; height: 12px; overflow: hidden; }
+    .funnel-bar { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+    .funnel-0 { background: linear-gradient(90deg, #6e40c9, #a78bfa); }
+    .funnel-1 { background: linear-gradient(90deg, #0074d9, #38bdf8); }
+    .funnel-2 { background: linear-gradient(90deg, #f9a825, #ffd54f); }
+    .funnel-3 { background: linear-gradient(90deg, #388e3c, #4caf50); }
+    .drop-off { color: var(--danger); font-size: 0.75rem; }
+
+    /* Heatmap */
+    .heatmap-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .heatmap-cell {
+      border-radius: 8px; padding: 12px 8px; text-align: center;
+      font-size: 0.72rem; transition: all 0.3s; cursor: default;
+    }
+    .heatmap-cell:hover { transform: scale(1.05); }
+    .heatmap-zone { font-weight: 600; margin-bottom: 4px; }
+    .heatmap-score { font-size: 1.2rem; font-weight: 700; }
+    .heatmap-dwell { color: rgba(255,255,255,0.7); margin-top: 2px; }
+
+    /* Anomalies */
+    .anomaly {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 12px; border-radius: 8px; margin-bottom: 8px;
+      background: #0d1117;
+    }
+    .anomaly-icon { font-size: 1.2rem; flex-shrink: 0; }
+    .anomaly-type { font-weight: 600; font-size: 0.85rem; }
+    .anomaly-desc { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+    .anomaly-action { font-size: 0.75rem; color: var(--accent2); margin-top: 4px; }
+    .sev-INFO { border-left: 3px solid #38bdf8; }
+    .sev-WARN { border-left: 3px solid #f9a825; }
+    .sev-CRITICAL { border-left: 3px solid #ef5350; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+    .sev-badge { padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; }
+    .badge-INFO { background: #0b2535; color: #38bdf8; }
+    .badge-WARN { background: #4a3200; color: #f9a825; }
+    .badge-CRITICAL { background: #4a0d0d; color: #ef5350; }
+
+    /* Zone table */
+    table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+    th { color: var(--muted); font-weight: 500; padding: 8px 0; text-align: left; border-bottom: 1px solid var(--border); }
+    td { padding: 8px 0; border-bottom: 1px solid #1c2128; }
+    .zone-bar { height: 6px; border-radius: 3px; background: var(--accent); }
+
+    /* Refresh indicator */
+    .refresh-ring {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--ok); animation: blink 1.5s ease-in-out infinite;
+      display: inline-block; margin-right: 6px;
+    }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+
+    .wide { grid-column: 1 / -1; }
+    .span2 { grid-column: span 2; }
+
+    .empty-state { text-align: center; color: var(--muted); padding: 24px; font-size: 0.9rem; }
+    .connecting { color: var(--warn); }
+
+    /* Store Layout Visualizer */
+    .store-layout {
+      display: grid;
+      grid-template-areas:
+        "entry entry"
+        "skincare makeup"
+        "fragrance haircare"
+        "personal queue"
+        "billing billing";
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 60px 100px 100px 80px 60px;
+      gap: 12px;
+      padding: 10px;
+      background: #0d1117;
+      border-radius: 8px;
+    }
+    .layout-zone {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+      transition: all 0.3s;
+      position: relative;
+    }
+    .layout-zone .zone-name { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; z-index: 2; }
+    .layout-zone .zone-metric { font-size: 1.2rem; font-weight: 700; z-index: 2; }
+    .layout-zone .zone-overlay { position: absolute; inset: 0; border-radius: 8px; opacity: 0.4; transition: background 0.3s; z-index: 1; }
+    
+    .zone-ENTRY { grid-area: entry; }
+    .zone-SKINCARE { grid-area: skincare; }
+    .zone-MAKEUP { grid-area: makeup; }
+    .zone-FRAGRANCE { grid-area: fragrance; }
+    .zone-HAIRCARE { grid-area: haircare; }
+    .zone-PERSONAL_CARE { grid-area: personal; }
+    .zone-BILLING_QUEUE { grid-area: queue; }
+    .zone-BILLING { grid-area: billing; }
+
+    /* Config panel */
+    .config { position: fixed; bottom: 20px; right: 20px; background: var(--card);
+              border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px;
+              font-size: 0.8rem; display: flex; align-items: center; gap: 10px; }
+    .config input { background: #0d1117; border: 1px solid var(--border); color: var(--text);
+                    border-radius: 6px; padding: 4px 8px; width: 220px; font-size: 0.8rem; }
+    .btn { padding: 5px 12px; border-radius: 6px; border: 1px solid var(--accent);
+           background: transparent; color: var(--accent); cursor: pointer; font-size: 0.8rem; }
+    .btn:hover { background: var(--accent); color: white; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🏪 Store Intelligence Dashboard</h1>
+    <div class="last-update" id="lastUpdate">Connecting...</div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center;">
+    <div><span class="refresh-ring"></span><span style="font-size:0.8rem;color:var(--muted)">Live</span></div>
+    <span class="status-badge status-healthy" id="healthBadge">—</span>
+  </div>
+</header>
+
+<div class="grid">
+
+  <!-- KPIs -->
+  <div class="card">
+    <div class="card-title"><span>📊</span> Key Metrics</div>
+    <div class="kpi-grid">
+      <div class="kpi kpi-visitors">
+        <div class="kpi-value" id="kpiVisitors">—</div>
+        <div class="kpi-label">Unique Visitors</div>
+      </div>
+      <div class="kpi kpi-conversion">
+        <div class="kpi-value" id="kpiConversion">—</div>
+        <div class="kpi-label">Conversion Rate</div>
+      </div>
+      <div class="kpi kpi-dwell">
+        <div class="kpi-value" id="kpiDwell">—</div>
+        <div class="kpi-label">Avg Dwell (s)</div>
+      </div>
+      <div class="kpi kpi-queue">
+        <div class="kpi-value" id="kpiQueue">—</div>
+        <div class="kpi-label">Queue Depth</div>
+      </div>
+      <div class="kpi kpi-revenue">
+        <div class="kpi-value" id="kpiRevenue">—</div>
+        <div class="kpi-label">Revenue (₹)</div>
+      </div>
+      <div class="kpi kpi-abandon">
+        <div class="kpi-value" id="kpiAbandon">—</div>
+        <div class="kpi-label">Abandon Rate</div>
+      </div>
+    </div>
+    <div style="font-size:0.75rem;color:var(--muted);text-align:right;" id="dataConf">—</div>
+  </div>
+
+  <!-- Funnel -->
+  <div class="card">
+    <div class="card-title"><span>🔽</span> Conversion Funnel</div>
+    <div id="funnelContainer">
+      <div class="empty-state connecting">Loading funnel data...</div>
+    </div>
+    <div style="margin-top:12px;font-size:0.8rem;color:var(--muted);">
+      Overall: <span id="funnelOverall" style="color:var(--ok);font-weight:700;">—</span>
+    </div>
+  </div>
+
+  <!-- Zone Heatmap & Layout -->
+  <div class="card span2">
+    <div class="card-title"><span>🗺</span> Store Layout & Heatmap</div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+      
+      <!-- Spatial Layout -->
+      <div>
+        <div style="font-size:0.75rem; color:var(--muted); margin-bottom:8px; text-transform:uppercase;">Live Floor Plan Occupancy</div>
+        <div class="store-layout" id="storeLayoutMap">
+          <div class="empty-state connecting" style="grid-column:1/-1">Loading map...</div>
+        </div>
+      </div>
+
+      <!-- Heatmap Cells -->
+      <div>
+        <div style="font-size:0.75rem; color:var(--muted); margin-bottom:8px; text-transform:uppercase;">Zone Popularity Score (0-100)</div>
+        <div class="heatmap-grid" id="heatmapGrid" style="grid-template-columns: repeat(3, 1fr);">
+          <div class="empty-state connecting" style="grid-column:1/-1">Loading zone data...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Zone Table -->
+  <div class="card">
+    <div class="card-title"><span>📋</span> Zone Details</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Zone</th>
+          <th>Visits</th>
+          <th>Avg Dwell</th>
+          <th>Occupancy</th>
+        </tr>
+      </thead>
+      <tbody id="zoneTable">
+        <tr><td colspan="4" class="empty-state">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Anomalies -->
+  <div class="card">
+    <div class="card-title"><span>⚠️</span> Active Anomalies <span id="anomalyCount" style="color:var(--muted);margin-left:4px;"></span></div>
+    <div id="anomalyContainer">
+      <div class="empty-state">Checking for anomalies...</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Config Panel -->
+<div class="config">
+  <span>🔗 API:</span>
+  <input type="text" id="apiUrl" value="http://localhost:8000" />
+  <input type="text" id="storeId" value="STORE_BLR_002" style="width:140px" />
+  <button class="btn" onclick="refresh()">Refresh</button>
+</div>
+
+<script>
+  const REFRESH_MS = 3000;
+  let timer = null;
+
+  function apiUrl() { return document.getElementById('apiUrl').value.replace(/\/$/, ''); }
+  function storeId() { return document.getElementById('storeId').value; }
+
+  async function fetchJSON(path) {
+    try {
+      const r = await fetch(apiUrl() + path);
+      if (!r.ok) return null;
+      return await r.json();
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function fmtPct(v) { return (v * 100).toFixed(1) + '%'; }
+  function fmtK(v) { return v >= 1000 ? (v/1000).toFixed(1) + 'k' : v.toFixed(0); }
+
+  function heatColor(score) {
+    const stops = [
+      [0, '#0d2035', '#1a4a73'],
+      [25, '#1a2f0d', '#2d5a1b'],
+      [50, '#4a3200', '#7a5200'],
+      [75, '#4a2000', '#8b3800'],
+      [90, '#4a0d0d', '#8b1a1a'],
+    ];
+    for (let i = stops.length - 1; i >= 0; i--) {
+      if (score >= stops[i][0]) return { bg: stops[i][1], border: stops[i][2] };
+    }
+    return { bg: '#0d2035', border: '#1a4a73' };
+  }
+
+  async function updateHealth() {
+    const data = await fetchJSON('/health');
+    if (!data) return;
+    const badge = document.getElementById('healthBadge');
+    badge.textContent = data.status.toUpperCase();
+    badge.className = 'status-badge status-' + data.status;
+    document.getElementById('lastUpdate').innerHTML =
+      `<span class="refresh-ring"></span>Last updated: ${new Date().toLocaleTimeString()} · v${data.version}`;
+  }
+
+  async function updateMetrics() {
+    const data = await fetchJSON(`/stores/${storeId()}/metrics`);
+    if (!data) return;
+    document.getElementById('kpiVisitors').textContent = data.unique_visitors;
+    document.getElementById('kpiConversion').textContent = fmtPct(data.conversion_rate);
+    document.getElementById('kpiDwell').textContent = Math.round(data.avg_dwell_seconds);
+    document.getElementById('kpiQueue').textContent = data.current_queue_depth;
+    document.getElementById('kpiRevenue').textContent = '₹' + fmtK(data.total_revenue_inr);
+    document.getElementById('kpiAbandon').textContent = fmtPct(data.abandonment_rate);
+
+    const conf = data.data_confidence;
+    const confColor = conf === 'HIGH' ? '#4caf50' : conf === 'MEDIUM' ? '#f9a825' : '#ef5350';
+    document.getElementById('dataConf').innerHTML =
+      `Data confidence: <span style="color:${confColor};font-weight:600;">${conf}</span> · ${data.total_transactions} transactions`;
+
+    // Zone table
+    const tbody = document.getElementById('zoneTable');
+    if (data.zone_metrics && data.zone_metrics.length) {
+      const maxVisit = Math.max(...data.zone_metrics.map(z => z.visit_count));
+      tbody.innerHTML = data.zone_metrics.map(z => `
+        <tr>
+          <td>${z.zone_id}</td>
+          <td>${z.visit_count}</td>
+          <td>${Math.round(z.avg_dwell_seconds)}s</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <div class="zone-bar" style="width:${Math.round(z.visit_count/maxVisit*80)}px;"></div>
+              ${z.current_occupancy}
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+  }
+
+  async function updateFunnel() {
+    const data = await fetchJSON(`/stores/${storeId()}/funnel`);
+    if (!data || !data.stages) return;
+    const maxCount = Math.max(...data.stages.map(s => s.count), 1);
+
+    document.getElementById('funnelOverall').textContent = fmtPct(data.overall_conversion_rate);
+    document.getElementById('funnelContainer').innerHTML = data.stages.map((s, i) => `
+      <div class="funnel-stage">
+        <div class="funnel-header">
+          <span>${s.stage}</span>
+          <span>
+            <strong>${s.count}</strong>
+            ${s.drop_off_pct > 0 ? `<span class="drop-off"> ↓${s.drop_off_pct.toFixed(1)}%</span>` : ''}
+          </span>
+        </div>
+        <div class="funnel-bar-bg">
+          <div class="funnel-bar funnel-${i}" style="width:${maxCount > 0 ? (s.count/maxCount*100) : 0}%"></div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function updateHeatmap() {
+    const data = await fetchJSON(`/stores/${storeId()}/heatmap`);
+    if (!data || !data.cells || !data.cells.length) return;
+    const grid = document.getElementById('heatmapGrid');
+    
+    // Update Map
+    const layout = document.getElementById('storeLayoutMap');
+    const allZones = ['ENTRY', 'SKINCARE', 'MAKEUP', 'FRAGRANCE', 'HAIRCARE', 'PERSONAL_CARE', 'BILLING_QUEUE', 'BILLING'];
+    
+    layout.innerHTML = allZones.map(zone => {
+      const cell = data.cells.find(c => c.zone_id === zone);
+      const score = cell ? cell.normalised_score : 0;
+      const visits = cell ? cell.visit_frequency : 0;
+      const col = heatColor(score);
+      return `
+        <div class="layout-zone zone-${zone}" style="border-color:${col.border}">
+          <div class="zone-overlay" style="background:${col.bg}"></div>
+          <div class="zone-name">${zone.replace('_', ' ')}</div>
+          <div class="zone-metric">${visits} visits</div>
+        </div>
+      `;
+    }).join('');
+
+    grid.innerHTML = data.cells.filter(c => c.zone_id && !['ENTRY', 'BILLING', 'BILLING_QUEUE'].includes(c.zone_id)).map(c => {
+      const col = heatColor(c.normalised_score);
+      return `
+        <div class="heatmap-cell" style="background:${col.bg};border:1px solid ${col.border};">
+          <div class="heatmap-zone">${c.zone_id}</div>
+          <div class="heatmap-score">${c.normalised_score.toFixed(0)}</div>
+          <div class="heatmap-dwell">${Math.round(c.avg_dwell_seconds)}s dwell</div>
+          <div class="heatmap-dwell">${c.visit_frequency} visits</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function updateAnomalies() {
+    const data = await fetchJSON(`/stores/${storeId()}/anomalies`);
+    if (!data) return;
+    const anomalies = data.active_anomalies || [];
+    document.getElementById('anomalyCount').textContent = `(${anomalies.length})`;
+
+    const icons = { BILLING_QUEUE_SPIKE: '🔴', CONVERSION_DROP: '📉', DEAD_ZONE: '💀', STALE_FEED: '📡', CROWD_BUILD: '👥' };
+    const container = document.getElementById('anomalyContainer');
+
+    if (!anomalies.length) {
+      container.innerHTML = '<div class="empty-state" style="color:var(--ok);">✅ No active anomalies</div>';
+      return;
+    }
+
+    container.innerHTML = anomalies.map(a => `
+      <div class="anomaly sev-${a.severity}">
+        <div class="anomaly-icon">${icons[a.anomaly_type] || '⚠️'}</div>
+        <div style="flex:1;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="anomaly-type">${a.anomaly_type.replace(/_/g,' ')}</div>
+            <span class="sev-badge badge-${a.severity}">${a.severity}</span>
+          </div>
+          <div class="anomaly-desc">${a.description}</div>
+          <div class="anomaly-action">→ ${a.suggested_action}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function refresh() {
+    await Promise.all([
+      updateHealth(),
+      updateMetrics(),
+      updateFunnel(),
+      updateHeatmap(),
+      updateAnomalies(),
+    ]);
+  }
+
+  function startAutoRefresh() {
+    if (timer) clearInterval(timer);
+    refresh();
+    timer = setInterval(refresh, REFRESH_MS);
+  }
+
+  // Start on load
+  startAutoRefresh();
+  document.getElementById('storeId').addEventListener('change', startAutoRefresh);
+  document.getElementById('apiUrl').addEventListener('change', startAutoRefresh);
+</script>
+</body>
+</html>
