@@ -7,7 +7,6 @@ A complete computer vision and analytics platform built for the **Purplle Tech C
 ## 🏗️ Architecture Overview
 
 The platform operates as a three-tier system: the Edge Pipeline, the Intelligence API, and the Real-time Dashboard.
-
 ```
                   [ Raw CCTV Clips (CAM 1-5.mp4) ]
                                  │
