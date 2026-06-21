@@ -138,7 +138,6 @@ Launch the Rich terminal dashboard to monitor the live metric stream:
 ```bash
 python store-intelligence/dashboard/live_dashboard.py --store STORE_BLR_002 --api http://localhost:8000
 ```
-
 ---
 
 ## 🧪 Running Unit Tests
